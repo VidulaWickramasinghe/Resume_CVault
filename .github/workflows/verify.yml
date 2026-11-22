@@ -1,0 +1,32 @@
+name: Verify CVault
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Unit and API tests
+        run: python -m unittest discover -s tests -v
+      - name: JavaScript syntax
+        run: node --check cvault/static/app.js
+      - name: Install local rendering and browser test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libreoffice-writer
+          python -m pip install playwright==1.51.0
+          python -m playwright install --with-deps chromium
+      - name: Browser and PDF smoke test
+        run: python scripts/browser_smoke.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cvault-browser-previews
+          path: artifacts/
